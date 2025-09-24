@@ -37,7 +37,7 @@ Website portofolio interaktif berbasis React tanpa proses build sehingga langsun
 
 1. Pastikan PHP 8+ dan MySQL/MariaDB tersedia di komputer Anda.
 2. Salin `api/config.php` lalu isi kredensial database lokal Anda pada konstanta `DB_HOST`, `DB_NAME`, `DB_USER`, dan `DB_PASSWORD`.
-3. Buat database dan tabel menggunakan skrip pada bagian [Skema Database](#skema-database). Anda juga bisa menambahkan data contoh melalui *seed* yang sama.
+3. Jalankan aplikasi; backend akan otomatis membuat database (jika user memiliki izin) beserta tabel `projects` dan data contoh poster pertama kali dijalankan.
 4. Dari root proyek, jalankan server PHP bawaan: `php -S localhost:8000`.
 5. Buka `http://localhost:8000` pada browser modern. Login admin menggunakan username `dikalfe` dan password `dikalfegantengbanget123` untuk mulai mengelola project.
 
@@ -45,9 +45,9 @@ Website portofolio interaktif berbasis React tanpa proses build sehingga langsun
 
 1. Buat akun dan domain/subdomain di InfinityFree, lalu buat database MySQL baru dari panel kontrol (catat host, nama DB, user, dan password).
 2. Edit `api/config.php` sesuai kredensial database InfinityFree yang Anda dapatkan.
-3. Melalui phpMyAdmin InfinityFree, jalankan skrip pada bagian [Skema Database](#skema-database) untuk membuat tabel `projects` dan data awal (opsional).
-4. Upload seluruh isi folder proyek (termasuk folder `assets` dan `api`) ke direktori `htdocs` menggunakan File Manager atau FTP.
-5. Pastikan `index.html` berada di root `htdocs`. Akses domain Anda dan gunakan kredensial admin untuk login sebelum mengunggah project baru.
+3. Upload seluruh isi folder proyek (termasuk folder `assets` dan `api`) ke direktori `htdocs` menggunakan File Manager atau FTP.
+4. Pastikan `index.html` berada di root `htdocs`. Pada akses pertama backend akan mencoba membuat tabel `projects` dan mengisi tiga contoh poster otomatis. Gunakan phpMyAdmin hanya jika hosting tidak mengizinkan pembuatan otomatis.
+5. Akses domain Anda dan gunakan kredensial admin untuk login sebelum mengunggah project baru.
 
 > ℹ️ Hash password admin disimpan di sisi server (`api/config.php`) sehingga tidak akan muncul saat *view source*. Ubah konstanta `ADMIN_USERNAME` dan `ADMIN_PASSWORD_HASH` jika ingin mengganti kredensial (gunakan `password_hash()` di PHP untuk menghasilkan hash baru).
 
