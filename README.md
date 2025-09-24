@@ -1,13 +1,17 @@
 # React Portfolio CRUD
 
-Website portofolio interaktif berbasis React tanpa proses build sehingga langsung kompatibel dengan hosting statis seperti [InfinityFree](https://www.infinityfree.com/). Data project kini disimpan di database MySQL melalui API PHP sehingga aman dari inspeksi *view source* dan dapat diakses oleh admin terautentikasi.
+Website portofolio interaktif berbasis React tanpa proses build sehingga langsung kompatibel dengan hosting statis seperti [InfinityFree](https://www.infinityfree.com/). Edisi ini dikurasi untuk graphic designer poster (Dikalfe) lengkap dengan layanan, kalkulator rate, dan kontak WhatsApp yang aman karena data project disimpan di database MySQL melalui API PHP.
 
 ## Fitur
 
-- ✨ Landing page modern dengan hero section, skill matrix, dan timeline perjalanan karier.
+- ✨ Landing page poster designer dengan hero, showcase layanan, workflow kolaborasi, skill matrix, dan timeline perjalanan.
+- 💼 Switcher layanan poster untuk melihat deliverables, estimasi durasi, serta kegunaan tiap paket.
+- 💰 Kalkulator rate poster (mulai Rp250.000) lengkap dengan opsi format, timeline, dan add-on yang langsung mengarah ke WhatsApp `0851 6320 7556`.
+- 🧾 Poster Brief Builder untuk merangkum kebutuhan campaign sebelum diskusi dengan client.
+- 🎨 Moodboard & inspiration board interaktif agar mudah menentukan vibe warna, tipografi, dan tekstur poster.
 - 🧠 CRUD project secara penuh (tambah, baca, edit, hapus) langsung dari browser.
-- 🔍 Pencarian cepat, filter status & kategori, serta pengurutan project.
-- 📊 Statistik jumlah project live/prototype otomatis ter-update.
+- 🔍 Pencarian cepat, filter status & kategori poster, serta pengurutan project.
+- 📊 Statistik jumlah project live/concept/prototype otomatis ter-update.
 - 🔐 Panel admin dengan autentikasi server-side (username `dikalfe`) agar hanya pemilik yang dapat mengunggah/mengubah project.
 - 💾 Persistensi data menggunakan database MySQL melalui endpoint PHP (`api/`) lengkap dengan sesi login.
 - ⚡ Shortcut `Ctrl/Cmd + K` untuk fokus ke pencarian project.
@@ -60,23 +64,23 @@ CREATE TABLE IF NOT EXISTS `projects` (
   `technologies` TEXT NULL,
   `live_url` VARCHAR(255) NULL,
   `repo_url` VARCHAR(255) NULL,
-  `category` VARCHAR(60) NOT NULL DEFAULT 'Case Study',
-  `status` VARCHAR(40) NOT NULL DEFAULT 'prototype',
+  `category` VARCHAR(60) NOT NULL DEFAULT 'Poster Event',
+  `status` VARCHAR(40) NOT NULL DEFAULT 'concept',
   `created_at` DATE NOT NULL DEFAULT (CURRENT_DATE),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `projects` (`title`, `summary`, `description`, `technologies`, `live_url`, `repo_url`, `category`, `status`, `created_at`) VALUES
-('Product Launchpad', 'Landing page dengan automasi waitlist.', 'High converting landing page dengan storytelling hero, pricing tiers, dan integrasi waitlist realtime.', '["React","Tailwind","Framer Motion"]', 'https://example.com/launchpad', 'https://github.com/username/launchpad', 'Product', 'live', '2024-06-12'),
-('Creator Revenue Dashboard', 'Dashboard tracking income kreator.', 'Widget modular, kartu KPI, dan filter lanjutan untuk memantau sponsorship, ads, hingga produk digital.', '["React","D3.js","Supabase"]', 'https://example.com/revenue-dashboard', 'https://github.com/username/revenue-dashboard', 'Dashboard', 'prototype', '2024-04-20'),
-('UX Research Lab', 'Case study dengan storytelling interaktif.', 'Highlight metode riset, persona, serta animasi perjalanan pengguna dengan integrasi Notion API.', '["React","GSAP","Notion API"]', 'https://example.com/ux-lab', 'https://github.com/username/ux-lab', 'Case Study', 'live', '2023-11-05');
+('Sunrise Music Festival Poster', 'Konsep poster festival musik energi sunrise.', 'Eksplorasi tipografi blok, gradien neon, dan layout modular untuk menonjolkan line-up artis beserta QR RSVP.', '["Adobe Photoshop","Adobe Illustrator","Gradien Neon"]', 'https://www.behance.net/', NULL, 'Poster Event', 'concept', '2024-08-04'),
+('Daily Brew Promo Poster', 'Poster promo coffee shop bergaya minimalis.', 'Menggabungkan fotografi produk dan ilustrasi grainy untuk promo buy 1 get 1 lengkap dengan harga dan lokasi.', '["Adobe Illustrator","Affinity Photo","Texture Overlay"]', 'https://www.behance.net/', NULL, 'Poster Promosi', 'concept', '2024-07-12'),
+('Creative Labs Workshop Poster', 'Poster workshop komunitas bergaya editorial.', 'Layout kolom informatif dengan highlight pembicara, palet monokrom biru, dan konsistensi branding acara.', '["Figma","Adobe InDesign","Editorial Layout"]', 'https://www.behance.net/', NULL, 'Poster Komunitas', 'live', '2024-05-28');
 ```
 
 ## Kustomisasi
 
 - Kelola project langsung melalui UI setelah login admin atau lakukan *seed* awal melalui database.
-- Konstanta `defaultProjects` di `assets/app.jsx` hanya berfungsi sebagai fallback saat server/database belum tersedia.
-- Sesuaikan daftar skill di konstanta `skills` dan timeline karier pada `timelineItems`.
+- Konstanta `defaultProjects` di `assets/app.jsx` berisi contoh konsep poster ketika database belum terhubung.
+- Sesuaikan daftar skill, layanan (`servicePackages`), kalkulator rate, hingga preset moodboard langsung di `assets/app.jsx`.
 - Edit gaya visual pada `assets/styles.css` untuk mengubah warna, tipografi, atau layout.
 - Untuk mengganti kredensial admin, ubah `ADMIN_USERNAME` dan `ADMIN_PASSWORD_HASH` pada `api/config.php`.
 

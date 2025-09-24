@@ -216,8 +216,8 @@ function validate_project_payload(array $payload): array
         }
     }
 
-    $category = isset($payload['category']) ? trim((string) $payload['category']) : 'Case Study';
-    $status = isset($payload['status']) ? trim((string) $payload['status']) : 'prototype';
+    $category = isset($payload['category']) ? trim((string) $payload['category']) : 'Poster Event';
+    $status = isset($payload['status']) ? trim((string) $payload['status']) : 'concept';
 
     $liveUrl = isset($payload['liveUrl']) ? trim((string) $payload['liveUrl']) : '';
     $repoUrl = isset($payload['repoUrl']) ? trim((string) $payload['repoUrl']) : '';
@@ -232,8 +232,8 @@ function validate_project_payload(array $payload): array
         'summary' => $summary,
         'description' => $description,
         'technologies' => $technologies,
-        'category' => $category ?: 'Case Study',
-        'status' => $status ?: 'prototype',
+        'category' => $category ?: 'Poster Event',
+        'status' => $status ?: 'concept',
         'liveUrl' => $liveUrl,
         'repoUrl' => $repoUrl,
         'createdAt' => $createdAt,

@@ -86,8 +86,8 @@ function normalize_project(array $record): array
         'technologies' => $technologies,
         'liveUrl' => $record['live_url'] ?? '',
         'repoUrl' => $record['repo_url'] ?? '',
-        'category' => $record['category'] ?? 'Case Study',
-        'status' => $record['status'] ?? 'prototype',
+        'category' => $record['category'] ?? 'Poster Event',
+        'status' => $record['status'] ?? 'concept',
         'createdAt' => isset($record['created_at']) ? substr((string) $record['created_at'], 0, 10) : null,
     ];
 }
