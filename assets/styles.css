@@ -272,6 +272,40 @@ main {
   padding: 0.6rem 1.1rem;
 }
 
+.login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.alert {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.admin-area {
+  margin-bottom: 2rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.admin-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-card .btn {
+  flex-shrink: 0;
+}
+
 .links {
   display: flex;
   gap: 0.9rem;

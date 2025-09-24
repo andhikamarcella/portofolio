@@ -1,5 +1,7 @@
 const { useState, useMemo, useEffect } = React;
 
+const API_BASE = "./api";
+
 const STORAGE_KEY = "react-portfolio-projects";
 
 const defaultProjects = [
@@ -93,6 +95,251 @@ function useLocalStorageProjects() {
   return [projects, setProjects];
 }
 
+function useAuth() {
+  const [state, setState] = useState({
+    authenticated: false,
+    user: null,
+    loading: true,
+    error: null,
+  });
+
+  const refreshSession = React.useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/session.php`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Gagal memuat status sesi");
+      }
+
+      const data = await response.json();
+      setState({
+        authenticated: Boolean(data.authenticated),
+        user: data.user,
+        loading: false,
+        error: null,
+      });
+    } catch (error) {
+      setState((current) => ({
+        authenticated: false,
+        user: null,
+        loading: false,
+        error: error.message || "Tidak dapat terhubung ke server",
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshSession();
+  }, [refreshSession]);
+
+  const login = React.useCallback(async (credentials) => {
+    setState((current) => ({ ...current, loading: true, error: null }));
+
+    try {
+      const response = await fetch(`${API_BASE}/login.php`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Login gagal");
+      }
+
+      setState({
+        authenticated: true,
+        user: data.user,
+        loading: false,
+        error: null,
+      });
+      return { success: true };
+    } catch (error) {
+      const message = error.message || "Login gagal";
+      setState({
+        authenticated: false,
+        user: null,
+        loading: false,
+        error: message,
+      });
+      return { success: false, message };
+    }
+  }, []);
+
+  const logout = React.useCallback(async () => {
+    try {
+      await fetch(`${API_BASE}/logout.php`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      setState({
+        authenticated: false,
+        user: null,
+        loading: false,
+        error: null,
+      });
+    }
+  }, []);
+
+  return { ...state, login, logout, refreshSession };
+}
+
+function useProjectApi() {
+  const [projects, setProjects] = useLocalStorageProjects();
+  const [loading, setLoading] = useState(true);
+  const [mutating, setMutating] = useState(false);
+  const [error, setError] = useState(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
+
+  const fetchProjects = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/projects.php`, {
+        method: "GET",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error("Gagal memuat project dari server");
+      }
+
+      const data = await response.json();
+      if (Array.isArray(data.projects)) {
+        setProjects(data.projects);
+        setLastSyncedAt(new Date());
+        setError(null);
+      }
+    } catch (err) {
+      setError(err.message || "Tidak dapat memuat data project");
+    } finally {
+      setLoading(false);
+    }
+  }, [setProjects]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  const createProject = React.useCallback(
+    async (payload) => {
+      setMutating(true);
+      try {
+        const response = await fetch(`${API_BASE}/projects.php`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Gagal menambah project");
+        }
+
+        if (data.project) {
+          setProjects((current) => [
+            data.project,
+            ...current.filter((item) => String(item.id) !== String(data.project.id)),
+          ]);
+          setLastSyncedAt(new Date());
+        }
+        setError(null);
+        return data.project;
+      } catch (err) {
+        const message = err.message || "Gagal menambah project";
+        setError(message);
+        throw new Error(message);
+      } finally {
+        setMutating(false);
+      }
+    },
+    [setProjects]
+  );
+
+  const updateProject = React.useCallback(
+    async (id, payload) => {
+      setMutating(true);
+      try {
+        const response = await fetch(`${API_BASE}/projects.php?id=${encodeURIComponent(id)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ ...payload, id }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Gagal memperbarui project");
+        }
+
+        if (data.project) {
+          setProjects((current) =>
+            current.map((project) => (String(project.id) === String(data.project.id) ? data.project : project))
+          );
+          setLastSyncedAt(new Date());
+        }
+        setError(null);
+        return data.project;
+      } catch (err) {
+        const message = err.message || "Gagal memperbarui project";
+        setError(message);
+        throw new Error(message);
+      } finally {
+        setMutating(false);
+      }
+    },
+    [setProjects]
+  );
+
+  const deleteProject = React.useCallback(
+    async (id) => {
+      setMutating(true);
+      try {
+        const response = await fetch(`${API_BASE}/projects.php?id=${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Gagal menghapus project");
+        }
+
+        setProjects((current) => current.filter((project) => String(project.id) !== String(id)));
+        setLastSyncedAt(new Date());
+        setError(null);
+        return true;
+      } catch (err) {
+        const message = err.message || "Gagal menghapus project";
+        setError(message);
+        throw new Error(message);
+      } finally {
+        setMutating(false);
+      }
+    },
+    [setProjects]
+  );
+
+  return {
+    projects,
+    loading,
+    mutating,
+    error,
+    lastSyncedAt,
+    fetchProjects,
+    createProject,
+    updateProject,
+    deleteProject,
+  };
+}
+
 function StatCard({ label, value, hint }) {
   return (
     <article className="card" style={{ padding: "1.5rem" }}>
@@ -133,7 +380,7 @@ function SkillMeter({ label, value }) {
   );
 }
 
-function ProjectForm({ onSave, onCancel, initialData, isEditing }) {
+function ProjectForm({ onSave, onCancel, initialData, isEditing, disabled }) {
   const [form, setForm] = useState(() =>
     initialData || {
       title: "",
@@ -171,6 +418,7 @@ function ProjectForm({ onSave, onCancel, initialData, isEditing }) {
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    if (disabled) return;
     if (!form.title.trim()) return alert("Judul project wajib diisi");
     if (!form.summary.trim()) return alert("Ringkasan project wajib diisi");
 
@@ -208,13 +456,14 @@ function ProjectForm({ onSave, onCancel, initialData, isEditing }) {
             placeholder="Contoh: Immersive Case Study"
             value={form.title}
             onChange={handleChange}
+            disabled={disabled}
           />
         </div>
         <div>
           <label className="muted" htmlFor="category">
             Kategori
           </label>
-          <select id="category" name="category" value={form.category} onChange={handleChange}>
+          <select id="category" name="category" value={form.category} onChange={handleChange} disabled={disabled}>
             <option>Case Study</option>
             <option>Dashboard</option>
             <option>Product</option>
@@ -226,7 +475,7 @@ function ProjectForm({ onSave, onCancel, initialData, isEditing }) {
           <label className="muted" htmlFor="status">
             Status
           </label>
-          <select id="status" name="status" value={form.status} onChange={handleChange}>
+          <select id="status" name="status" value={form.status} onChange={handleChange} disabled={disabled}>
             <option value="live">Live</option>
             <option value="prototype">Prototype</option>
             <option value="draft">Draft</option>
@@ -245,6 +494,7 @@ function ProjectForm({ onSave, onCancel, initialData, isEditing }) {
           placeholder="Highlight utama project"
           value={form.summary}
           onChange={handleChange}
+          disabled={disabled}
         />
       </div>
 
@@ -259,6 +509,7 @@ function ProjectForm({ onSave, onCancel, initialData, isEditing }) {
           placeholder="Ceritakan tantangan, proses, dan dampak project"
           value={form.description}
           onChange={handleChange}
+          disabled={disabled}
         />
       </div>
 
@@ -273,6 +524,7 @@ function ProjectForm({ onSave, onCancel, initialData, isEditing }) {
           placeholder="React, Motion, Analytics"
           value={form.technologies}
           onChange={handleChange}
+          disabled={disabled}
         />
       </div>
 
@@ -288,6 +540,7 @@ function ProjectForm({ onSave, onCancel, initialData, isEditing }) {
             placeholder="https://"
             value={form.liveUrl}
             onChange={handleChange}
+            disabled={disabled}
           />
         </div>
         <div>
@@ -301,6 +554,7 @@ function ProjectForm({ onSave, onCancel, initialData, isEditing }) {
             placeholder="https://github.com/..."
             value={form.repoUrl}
             onChange={handleChange}
+            disabled={disabled}
           />
         </div>
       </div>
@@ -311,7 +565,7 @@ function ProjectForm({ onSave, onCancel, initialData, isEditing }) {
             Batal
           </button>
         )}
-        <button type="submit" className="btn btn-primary">
+        <button type="submit" className="btn btn-primary" disabled={disabled}>
           {isEditing ? "Simpan Perubahan" : "Tambah Project"}
         </button>
       </div>
@@ -319,7 +573,83 @@ function ProjectForm({ onSave, onCancel, initialData, isEditing }) {
   );
 }
 
-function ProjectCard({ project, onEdit, onDelete }) {
+function LoginCard({ onLogin, loading, error }) {
+  const [form, setForm] = useState({ username: "", password: "" });
+  const [localError, setLocalError] = useState(null);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const username = form.username.trim();
+    const password = form.password;
+
+    if (!username || !password) {
+      setLocalError("Isi username dan password admin.");
+      return;
+    }
+
+    const result = await onLogin({ username, password });
+    if (!result.success) {
+      setLocalError(result.message || "Login gagal");
+      return;
+    }
+
+    setLocalError(null);
+    setForm({ username: "", password: "" });
+  };
+
+  const message = localError || error;
+
+  return (
+    <form className="card login-card" onSubmit={handleSubmit}>
+      <h3 style={{ marginBottom: "1rem" }}>Masuk Admin</h3>
+      <p className="muted" style={{ marginBottom: "1.5rem" }}>
+        Login diperlukan untuk menambah, mengubah, atau menghapus project portofolio.
+      </p>
+      <label className="muted" htmlFor="login-username">
+        Username
+      </label>
+      <input
+        id="login-username"
+        name="username"
+        className="input"
+        placeholder="Username admin"
+        value={form.username}
+        onChange={handleChange}
+        disabled={loading}
+        autoComplete="username"
+      />
+      <label className="muted" htmlFor="login-password" style={{ marginTop: "1rem" }}>
+        Password
+      </label>
+      <input
+        id="login-password"
+        name="password"
+        type="password"
+        className="input"
+        placeholder="Password admin"
+        value={form.password}
+        onChange={handleChange}
+        disabled={loading}
+        autoComplete="current-password"
+      />
+      {message && (
+        <div className="alert" role="alert">
+          {message}
+        </div>
+      )}
+      <button type="submit" className="btn btn-primary" disabled={loading} style={{ marginTop: "1.5rem" }}>
+        {loading ? "Memeriksa..." : "Masuk"}
+      </button>
+    </form>
+  );
+}
+
+function ProjectCard({ project, onEdit, onDelete, canManage, isBusy }) {
   const badgeClass = `status-badge ${project.status === "live" ? "success" : project.status === "prototype" ? "pending" : ""}`;
 
   return (
@@ -360,27 +690,30 @@ function ProjectCard({ project, onEdit, onDelete }) {
         ))}
       </div>
 
-      <div className="project-actions">
-        <button className="btn btn-outline" onClick={() => onEdit(project)}>
-          Edit
-        </button>
-        <button
-          className="btn"
-          style={{ background: "rgba(239, 68, 68, 0.2)", color: "var(--danger)" }}
-          onClick={() => {
-            const confirmDelete = window.confirm(`Hapus project "${project.title}"?`);
-            if (confirmDelete) onDelete(project.id);
-          }}
-        >
-          Hapus
-        </button>
-      </div>
+      {canManage && (
+        <div className="project-actions">
+          <button className="btn btn-outline" onClick={() => onEdit(project)} disabled={isBusy}>
+            Edit
+          </button>
+          <button
+            className="btn"
+            style={{ background: "rgba(239, 68, 68, 0.2)", color: "var(--danger)" }}
+            disabled={isBusy}
+            onClick={() => {
+              const confirmDelete = window.confirm(`Hapus project "${project.title}"?`);
+              if (confirmDelete) onDelete(project.id);
+            }}
+          >
+            Hapus
+          </button>
+        </div>
+      )}
     </article>
   );
 }
 
-function ProjectsSection() {
-  const [projects, setProjects] = useLocalStorageProjects();
+function ProjectsSection({ auth, store }) {
+  const { projects, loading, mutating, error, lastSyncedAt, fetchProjects, createProject, updateProject, deleteProject } = store;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -418,38 +751,40 @@ function ProjectsSection() {
     };
   }, [projects]);
 
-  const handleSaveProject = (data) => {
-    if (editingProject) {
-      setProjects((current) =>
-        current.map((project) =>
-          project.id === editingProject.id
-            ? {
-                ...project,
-                ...data,
-                id: editingProject.id,
-              }
-            : project
-        )
-      );
-      setEditingProject(null);
-    } else {
-      setProjects((current) => [
-        {
-          ...data,
-          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-          createdAt: new Date().toISOString().slice(0, 10),
-        },
-        ...current,
-      ]);
+  const handleSaveProject = async (data) => {
+    const basePayload = {
+      ...data,
+      createdAt: editingProject?.createdAt || new Date().toISOString().slice(0, 10),
+    };
+
+    try {
+      if (editingProject) {
+        await updateProject(editingProject.id, basePayload);
+        setEditingProject(null);
+      } else {
+        await createProject({ ...basePayload, createdAt: new Date().toISOString().slice(0, 10) });
+      }
+    } catch (err) {
+      alert(err.message || "Gagal menyimpan project");
     }
   };
 
-  const handleDeleteProject = (id) => {
-    setProjects((current) => current.filter((project) => project.id !== id));
-    if (editingProject && editingProject.id === id) {
-      setEditingProject(null);
+  const handleDeleteProject = async (id) => {
+    try {
+      await deleteProject(id);
+      if (editingProject && editingProject.id === id) {
+        setEditingProject(null);
+      }
+    } catch (err) {
+      alert(err.message || "Gagal menghapus project");
     }
   };
+
+  useEffect(() => {
+    if (auth.authenticated) {
+      fetchProjects();
+    }
+  }, [auth.authenticated, fetchProjects]);
 
   return (
     <section id="projects" style={{ marginTop: "4rem" }}>
@@ -495,12 +830,65 @@ function ProjectsSection() {
         <StatCard label="Prototype" value={stats.prototype} />
       </div>
 
-      <ProjectForm
-        onSave={handleSaveProject}
-        onCancel={() => setEditingProject(null)}
-        initialData={editingProject}
-        isEditing={Boolean(editingProject)}
-      />
+      <div className="admin-area">
+        {auth.loading ? (
+          <article className="card muted">Memeriksa status admin...</article>
+        ) : auth.authenticated ? (
+          <article className="card admin-card">
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <strong>Admin aktif</strong>
+              <span className="muted">Anda dapat mengelola project portofolio secara langsung.</span>
+              {lastSyncedAt && (
+                <span className="badge" style={{ alignSelf: "flex-start" }}>
+                  Sinkron {lastSyncedAt.toLocaleString("id-ID")}
+                </span>
+              )}
+            </div>
+            <button className="btn btn-outline" onClick={auth.logout} disabled={mutating}>
+              Keluar
+            </button>
+          </article>
+        ) : (
+          <LoginCard
+            onLogin={async (values) => {
+              const result = await auth.login(values);
+              if (result.success) {
+                await fetchProjects();
+              }
+              return result;
+            }}
+            loading={auth.loading}
+            error={auth.error}
+          />
+        )}
+      </div>
+
+      {auth.authenticated && (
+        editingProject ? (
+          <ProjectForm
+            key={editingProject.id}
+            onSave={handleSaveProject}
+            onCancel={() => setEditingProject(null)}
+            initialData={editingProject}
+            isEditing
+            disabled={mutating}
+          />
+        ) : (
+          <ProjectForm onSave={handleSaveProject} isEditing={false} disabled={mutating} />
+        )
+      )}
+
+      {error && (
+        <div className="alert" role="alert" style={{ marginBottom: "1.5rem" }}>
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <p className="muted" style={{ marginBottom: "1.5rem" }}>
+          Memuat data project dari server...
+        </p>
+      )}
 
       <div className="grid" style={{ gap: "1.6rem" }}>
         {filteredProjects.length === 0 ? (
@@ -512,7 +900,14 @@ function ProjectsSection() {
           </div>
         ) : (
           filteredProjects.map((project) => (
-            <ProjectCard key={project.id} project={project} onEdit={setEditingProject} onDelete={handleDeleteProject} />
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onEdit={setEditingProject}
+              onDelete={handleDeleteProject}
+              canManage={auth.authenticated}
+              isBusy={mutating}
+            />
           ))
         )}
       </div>
@@ -598,12 +993,15 @@ function Hero() {
 function Footer() {
   return (
     <footer className="footer">
-      Dibangun dengan React tanpa build step sehingga kompatibel dengan hosting statis seperti InfinityFree. Simpanan data berada di browser melalui localStorage.
+      Dibangun dengan React tanpa build step sehingga kompatibel dengan hosting statis seperti InfinityFree. Data project tersimpan aman di database MySQL melalui API PHP.
     </footer>
   );
 }
 
 function App() {
+  const auth = useAuth();
+  const projectStore = useProjectApi();
+
   useEffect(() => {
     const handleKeydown = (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -623,7 +1021,7 @@ function App() {
     <main>
       <Hero />
       <SkillsSection />
-      <ProjectsSection />
+      <ProjectsSection auth={auth} store={projectStore} />
       <Timeline />
       <Footer />
     </main>
